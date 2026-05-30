@@ -61,6 +61,23 @@ function Invoke-Msys([string]$Command) {
     Invoke-Native $Bash @('-lc', "set -euo pipefail; $Command")
 }
 
+function Invoke-MsysWithRetry([string]$Description, [string]$Command, [int]$Attempts = 3) {
+    for ($Attempt = 1; $Attempt -le $Attempts; $Attempt++) {
+        try {
+            Invoke-Msys $Command
+            return
+        } catch {
+            if ($Attempt -ge $Attempts) {
+                throw
+            }
+
+            $DelaySeconds = 10 * $Attempt
+            Write-Warning "$Description failed on attempt $Attempt of $Attempts. Retrying in $DelaySeconds seconds. $($_.Exception.Message)"
+            Start-Sleep -Seconds $DelaySeconds
+        }
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 
 if (-not (Test-Path $Bash)) {
@@ -77,12 +94,12 @@ if (-not (Test-Path $Bash)) {
 }
 
 Write-Step 'Initializing MSYS2 package database'
-Invoke-Msys 'pacman --noconfirm -Syuu || true'
-Invoke-Msys 'pacman --noconfirm -Suu'
+Invoke-MsysWithRetry 'MSYS2 package database synchronization' 'pacman --noconfirm --disable-download-timeout -Syuu || true'
+Invoke-MsysWithRetry 'MSYS2 system upgrade' 'pacman --noconfirm --disable-download-timeout -Suu'
 
 Write-Step 'Installing compiler and Qt build dependencies'
-Invoke-Msys @'
-pacman --noconfirm -S --needed \
+Invoke-MsysWithRetry 'MSYS2 dependency installation' @'
+pacman --noconfirm --disable-download-timeout -S --needed \
   base-devel \
   mingw-w64-ucrt-x86_64-gcc \
   mingw-w64-ucrt-x86_64-make \
