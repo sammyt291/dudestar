@@ -32,7 +32,7 @@ Talkgroup:  For DMR, enter the talkgroup ID number.  A very active TG for testin
 MYCALL/URCALL/RPTR1/RPTR2 are always visible, but are only relevent to Dstar modes REF/DCS/XRF.  These fields need to be entered correctly before attempting to TX on any DSTAR reflector.  RPTR2 is automatically entered with a suggested value when connected, but can still be modified for advanced users.
 
 # Compiling on Linux
-This software is written in C++ on Linux and requires mbelib and QT5, and natually the devel packages to build.  With these requirements met, run the following:
+This software is written in C++ on Linux and requires Qt5 and the usual development packages to build. MBELIB source files are bundled into this project, so a separate mbelib development package is not required. With these requirements met, run the following:
 ```
 qmake
 make
