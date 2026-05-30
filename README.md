@@ -55,7 +55,7 @@ From a freshly extracted source zip on Windows, open Command Prompt or PowerShel
 .\build-windows.cmd
 ```
 
-The script bootstraps a private MSYS2/UCRT64 toolchain under `.windows-build`, installs the Qt 5 packages DUDE-Star needs, builds with qmake/mingw32-make, and runs `windeployqt` so the result can be launched from `build\windows\package\dudestar.exe`. No prior Qt, compiler, Git, or administrator setup is required, but the first run does need internet access to download MSYS2 and Qt packages. Later runs reuse the downloaded toolchain. The package install steps disable pacman's low-speed download timeout and retry transient MSYS2 mirror failures automatically, so a slow mirror does not normally require restarting from scratch.
+The script bootstraps a private MSYS2/UCRT64 toolchain under `.windows-build`, installs the Qt 5 packages DUDE-Star needs, builds with qmake/mingw32-make, and runs `windeployqt` so the result can be launched from `build\windows\package\dudestar.exe`. No prior Qt, compiler, Git, or administrator setup is required, but the first run does need internet access to download MSYS2 and Qt packages. Later runs reuse the downloaded toolchain. The package install steps disable pacman's low-speed download timeout and retry transient MSYS2 mirror failures automatically, so a slow mirror does not normally require restarting from scratch. The bootstrap also installs MSYS2's ANGLE runtime package because Qt's Windows deployment tool may copy `libEGL.dll` and `libGLESv2.dll` while packaging QtGui.
 
 Optional switches can be passed through the command file, for example:
 ```
