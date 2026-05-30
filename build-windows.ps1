@@ -13,7 +13,7 @@ param(
     [ValidateSet('release', 'debug')]
     [string]$Configuration = 'release',
 
-    [string]$BuildRoot = (Join-Path $PSScriptRoot '.windows-build'),
+    [string]$BuildRoot = '',
 
     [switch]$SkipDeploy
 )
@@ -21,11 +21,23 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+$ScriptRoot = if (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+    $PSScriptRoot
+} elseif (-not [string]::IsNullOrWhiteSpace($MyInvocation.MyCommand.Path)) {
+    Split-Path -Parent $MyInvocation.MyCommand.Path
+} else {
+    (Get-Location).ProviderPath
+}
+
+$ProjectRoot = (Resolve-Path -LiteralPath $ScriptRoot).ProviderPath
+if ([string]::IsNullOrWhiteSpace($BuildRoot)) {
+    $BuildRoot = Join-Path $ProjectRoot '.windows-build'
+}
+
 if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
     throw 'This script must be run on Windows.'
 }
 
-$ProjectRoot = $PSScriptRoot
 $MsysRoot = Join-Path $BuildRoot 'msys64'
 $Bash = Join-Path $MsysRoot 'usr\bin\bash.exe'
 $MsysInstaller = Join-Path $BuildRoot 'msys2-base-x86_64-latest.sfx.exe'
