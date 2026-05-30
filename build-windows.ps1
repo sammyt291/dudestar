@@ -58,7 +58,26 @@ function Invoke-Msys([string]$Command) {
     $env:MSYSTEM = 'UCRT64'
     $env:CHERE_INVOKING = '1'
     $env:DUDESTAR_PROJECT_ROOT = $ProjectRoot
-    Invoke-Native $Bash @('-lc', "set -euo pipefail; $Command")
+
+    # PowerShell 5's native command-line quoting can corrupt multi-line
+    # `bash -lc` command strings that contain nested quotes and command
+    # substitutions (for example, `$(nproc)`). Write the command to a
+    # temporary script and execute that script directly so bash receives the
+    # content exactly as authored.
+    $MsysTmp = Join-Path $MsysRoot 'tmp'
+    New-Item -ItemType Directory -Force -Path $MsysTmp | Out-Null
+
+    $ScriptName = "msys-command-{0}.sh" -f ([Guid]::NewGuid().ToString('N'))
+    $ScriptPath = Join-Path $MsysTmp $ScriptName
+    $ScriptText = "set -euo pipefail`n$Command"
+    $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($ScriptPath, $ScriptText, $Utf8NoBom)
+
+    try {
+        Invoke-Native $Bash @('-e', '-u', '-o', 'pipefail', "/tmp/$ScriptName")
+    } finally {
+        Remove-Item -LiteralPath $ScriptPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Invoke-MsysWithRetry([string]$Description, [string]$Command, [int]$Attempts = 3) {
