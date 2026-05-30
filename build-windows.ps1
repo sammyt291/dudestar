@@ -158,7 +158,9 @@ cd "$(cygpath -u "$DUDESTAR_PROJECT_ROOT")"
 rm -rf build/windows
 mkdir -p build/windows
 cd build/windows
-qmake ../../dudestar.pro CONFIG+="$CONFIGURATION" CONFIG+=no_flite CONFIG+=no_static
+QMAKE="$(command -v qmake-qt5 || command -v qmake)"
+echo "Using qmake: $QMAKE"
+"$QMAKE" ../../dudestar.pro CONFIG+="$CONFIGURATION" CONFIG+=no_flite CONFIG+=no_static
 mingw32-make -j"$(nproc)"
 '@
 
@@ -170,7 +172,9 @@ export CONFIGURATION="$DUDESTAR_BUILD_CONFIGURATION"
 cd "$(cygpath -u "$DUDESTAR_PROJECT_ROOT")/build/windows"
 mkdir -p package
 cp "${CONFIGURATION}/dudestar.exe" package/
-windeployqt --"${CONFIGURATION}" --compiler-runtime package/dudestar.exe
+WINDEPLOYQT="$(command -v windeployqt-qt5 || command -v windeployqt)"
+echo "Using windeployqt: $WINDEPLOYQT"
+"$WINDEPLOYQT" --"${CONFIGURATION}" --compiler-runtime package/dudestar.exe
 '@
 
     Write-Host "`nBuild complete: $(Join-Path $ProjectRoot 'build\windows\package\dudestar.exe')" -ForegroundColor Green
