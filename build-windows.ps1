@@ -40,6 +40,7 @@ if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
 
 $MsysRoot = Join-Path $BuildRoot 'msys64'
 $Bash = Join-Path $MsysRoot 'usr\bin\bash.exe'
+$Pacman = Join-Path $MsysRoot 'usr\bin\pacman.exe'
 $MsysInstaller = Join-Path $BuildRoot 'msys2-base-x86_64-latest.sfx.exe'
 $MsysUrl = 'https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.sfx.exe'
 
@@ -69,7 +70,7 @@ function Invoke-Msys([string]$Command) {
 
     $ScriptName = "msys-command-{0}.sh" -f ([Guid]::NewGuid().ToString('N'))
     $ScriptPath = Join-Path $MsysTmp $ScriptName
-    $ScriptText = "set -euo pipefail`n$Command"
+    $ScriptText = "set -euo pipefail`nexport PATH=/ucrt64/bin:/usr/bin:`${PATH:-}`n$Command"
     $Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($ScriptPath, $ScriptText, $Utf8NoBom)
 
@@ -99,16 +100,36 @@ function Invoke-MsysWithRetry([string]$Description, [string]$Command, [int]$Atte
 
 New-Item -ItemType Directory -Force -Path $BuildRoot | Out-Null
 
-if (-not (Test-Path $Bash)) {
+function Install-Msys2([switch]$ForceDownload) {
     Write-Step 'Downloading private MSYS2 bootstrap archive'
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -UseBasicParsing -Uri $MsysUrl -OutFile $MsysInstaller
+    if ($ForceDownload -and (Test-Path $MsysInstaller)) {
+        Remove-Item -LiteralPath $MsysInstaller -Force
+    }
+    if ($ForceDownload -or -not (Test-Path $MsysInstaller)) {
+        Invoke-WebRequest -UseBasicParsing -Uri $MsysUrl -OutFile $MsysInstaller
+    } else {
+        Write-Host "Reusing cached MSYS2 bootstrap archive at $MsysInstaller"
+    }
 
     Write-Step 'Extracting MSYS2 into the project build directory'
     Invoke-Native $MsysInstaller @('-y', "-o$BuildRoot")
 
     if (-not (Test-Path $Bash)) {
         throw "MSYS2 extraction finished, but bash.exe was not found at $Bash"
+    }
+    if (-not (Test-Path $Pacman)) {
+        throw "MSYS2 extraction finished, but pacman.exe was not found at $Pacman"
+    }
+}
+
+if (-not (Test-Path $Bash) -or -not (Test-Path $Pacman)) {
+    if ((Test-Path $Bash) -and -not (Test-Path $Pacman)) {
+        Write-Warning "Existing MSYS2 bootstrap is incomplete: bash.exe exists but pacman.exe is missing at $Pacman. Recreating $MsysRoot."
+        Remove-Item -LiteralPath $MsysRoot -Recurse -Force
+        Install-Msys2 -ForceDownload
+    } else {
+        Install-Msys2
     }
 }
 
