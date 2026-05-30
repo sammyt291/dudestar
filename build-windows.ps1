@@ -176,6 +176,40 @@ cp "${CONFIGURATION}/dudestar.exe" package/
 WINDEPLOYQT="$(command -v windeployqt-qt5 || command -v windeployqt)"
 echo "Using windeployqt: $WINDEPLOYQT"
 "$WINDEPLOYQT" --"${CONFIGURATION}" --compiler-runtime package/dudestar.exe
+
+# windeployqt copies Qt plugins and the direct Qt/MinGW runtime DLLs, but
+# current MSYS2 UCRT Qt packages can leave some indirect DLL dependencies
+# behind (for example ICU, double-conversion, md4c, and harfbuzz). Walk the
+# deployed PE files recursively and copy any DLL dependency that exists in the
+# UCRT64 bin directory so the package can run outside the build environment.
+copy_ucrt_runtime_deps() {
+  local package_dir="$1"
+  local mingw_bin=/ucrt64/bin
+  local changed=1
+  local dep dep_path existing
+
+  while (( changed )); do
+    changed=0
+    while IFS= read -r -d '' binary; do
+      while IFS= read -r dep; do
+        dep="${dep//$'\r'/}"
+        [[ -n "$dep" ]] || continue
+
+        dep_path="$mingw_bin/$dep"
+        [[ -f "$dep_path" ]] || continue
+
+        existing="$(find "$package_dir" -maxdepth 1 -type f -iname "$dep" -print -quit)"
+        [[ -n "$existing" ]] && continue
+
+        echo "Copying UCRT runtime dependency: $dep"
+        cp "$dep_path" "$package_dir/"
+        changed=1
+      done < <(objdump -p "$binary" 2>/dev/null | sed -n 's/^\s*DLL Name: //p')
+    done < <(find "$package_dir" -type f \( -iname '*.exe' -o -iname '*.dll' \) -print0)
+  done
+}
+
+copy_ucrt_runtime_deps package
 '@
 
     Write-Host "`nBuild complete: $(Join-Path $ProjectRoot 'build\windows\package\dudestar.exe')" -ForegroundColor Green
