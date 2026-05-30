@@ -10,13 +10,18 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = dudestar
 TEMPLATE = app
-VERSION_BUILD='$(shell cd $$PWD;git rev-parse --short HEAD)'
+VERSION_BUILD = unknown
+exists($$PWD/.git) {
+    win32:VERSION_BUILD = $$system(git -C $$PWD rev-parse --short HEAD 2>NUL)
+    else:VERSION_BUILD = $$system(git -C $$PWD rev-parse --short HEAD 2>/dev/null)
+    isEmpty(VERSION_BUILD): VERSION_BUILD = unknown
+}
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
-DEFINES += VERSION_NUMBER=\"\\\"$${VERSION_BUILD}\\\"\"
+DEFINES += VERSION_NUMBER=\\\"$${VERSION_BUILD}\\\"
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -136,11 +141,15 @@ HEADERS += \
 FORMS += \
     dudestar.ui
 
-win32:QMAKE_LFLAGS += -static
+win32:!no_static:QMAKE_LFLAGS += -static
 
 QMAKE_LFLAGS_WINDOWS += --enable-stdcall-fixup
 
-LIBS += -LC:\Qt\5.14.0\mingw73_32_static\lib -lmbe -lflite_cmu_us_slt -lflite_cmu_us_kal16 -lflite_cmu_us_awb -lflite_cmu_us_rms -lflite_usenglish -lflite_cmulex -lflite -lasound
+no_flite:DEFINES += DUDESTAR_NO_FLITE
+!no_flite {
+    LIBS += -lflite_cmu_us_slt -lflite_cmu_us_kal16 -lflite_cmu_us_awb -lflite_cmu_us_rms -lflite_usenglish -lflite_cmulex -lflite
+    unix:!android: LIBS += -lasound
+}
 
 RC_ICONS = images/dstar.ico
 

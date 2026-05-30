@@ -48,6 +48,23 @@ And if pulseaudio is not currently installed:
 sudo apt-get install pulseaudio
 ```
 
+
+# One-command Windows build
+From a freshly extracted source zip on Windows, open Command Prompt or PowerShell in the DUDE-Star folder and run:
+```
+.\build-windows.cmd
+```
+
+The script bootstraps a private MSYS2/UCRT64 toolchain under `.windows-build`, installs the Qt 5 packages DUDE-Star needs, builds with qmake/mingw32-make, and runs `windeployqt` so the result can be launched from `build\windows\package\dudestar.exe`. No prior Qt, compiler, Git, or administrator setup is required, but the first run does need internet access to download MSYS2 and Qt packages. Later runs reuse the downloaded toolchain.
+
+Optional switches can be passed through the command file, for example:
+```
+.\build-windows.cmd -Configuration debug
+.\build-windows.cmd -SkipDeploy
+```
+
+The bootstrap build disables optional FLite text-to-speech support (`CONFIG+=no_flite`) because the stock Windows zip workflow is intended to require no extra FLite libraries.
+
 # Builds
 There is currently a 32-bit Windows executable available in the builds directory.  QT and mbelib are statically linked, no dependencies are required.
 There is also an Android build called DROID-Star at the Play Store as a beta release.
