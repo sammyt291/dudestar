@@ -144,6 +144,7 @@ pacman --noconfirm --disable-download-timeout -S --needed \
   mingw-w64-ucrt-x86_64-gcc \
   mingw-w64-ucrt-x86_64-make \
   mingw-w64-ucrt-x86_64-qt5-base \
+  mingw-w64-ucrt-x86_64-angleproject \
   mingw-w64-ucrt-x86_64-qt5-tools \
   mingw-w64-ucrt-x86_64-qt5-multimedia \
   mingw-w64-ucrt-x86_64-qt5-serialport
